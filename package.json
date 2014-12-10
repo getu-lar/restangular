@@ -1,14 +1,14 @@
 {
   "name": "restangular",
-  "description": "Restful Resources service for AngularJS apps",
+  "description": "Restful Resources service for AngularJS apps (getu-lar fork)",
   "version": "1.4.0",
   "filename": "restangular.min.js",
   "main": "./dist/restangular.min.js",
-  "homepage": "https://github.com/mgonto/restangular",
+  "homepage": "https://github.com/getu-lar/restangular",
   "author": "Martin Gontovnikas <martin@gon.to>",
   "repository": {
     "type": "git",
-    "url": "git://github.com/mgonto/restangular.git"
+    "url": "git://github.com/getu-lar/restangular.git"
   },
   "engines": {
     "node": ">= 0.9"

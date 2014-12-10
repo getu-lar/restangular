@@ -2,7 +2,48 @@
 
 var module = angular.module('restangular', []);
 
-module.provider('Restangular', function() {
+module
+.service('RestangularResource', function RestangularResource($http) {
+  this.create = function (config, url, configurer) {
+    var that = this, resource = {};
+    _.each(_.keys(configurer), function(key) {
+      var value = configurer[key];
+
+      // Add default parameters
+      value.params = _.extend({}, value.params, config.defaultRequestParams[value.method.toLowerCase()]);
+      // We don't want the ? if no params are there
+      if (_.isEmpty(value.params)) {
+        delete value.params;
+      }
+
+      if (config.isSafe(value.method)) {
+
+        resource[key] = function() {
+          return that.executeRequest(_.extend(value, {
+            url: url
+          }));
+        };
+
+      } else {
+
+        resource[key] = function(data) {
+          return that.executeRequest(_.extend(value, {
+            url: url,
+            data: data
+          }));
+        };
+
+      }
+    });
+
+    return resource;
+  };
+
+  this.executeRequest = function (params) {
+    return $http(params);
+  };
+})
+.provider('Restangular', function() {
   // Configuration
   var Configurer = {};
   Configurer.init = function(object, config) {
@@ -505,42 +546,7 @@ module.provider('Restangular', function() {
       return parents.reverse();
     };
 
-    function RestangularResource(config, $http, url, configurer) {
-      var resource = {};
-      _.each(_.keys(configurer), function(key) {
-        var value = configurer[key];
-
-        // Add default parameters
-        value.params = _.extend({}, value.params, config.defaultRequestParams[value.method.toLowerCase()]);
-        // We don't want the ? if no params are there
-        if (_.isEmpty(value.params)) {
-          delete value.params;
-        }
-
-        if (config.isSafe(value.method)) {
-
-          resource[key] = function() {
-            return $http(_.extend(value, {
-              url: url
-            }));
-          };
-
-        } else {
-
-          resource[key] = function(data) {
-            return $http(_.extend(value, {
-              url: url,
-              data: data
-            }));
-          };
-
-        }
-      });
-
-      return resource;
-    }
-
-    BaseCreator.prototype.resource = function(current, $http, localHttpConfig, callHeaders, callParams, what, etag,operation) {
+    BaseCreator.prototype.resource = function(current, RestangularResource, $http, localHttpConfig, callHeaders, callParams, what, etag,operation) {
 
       var params = _.defaults(callParams || {}, this.config.defaultRequestParams.common);
       var headers = _.defaults(callHeaders || {}, this.config.defaultHeaders);
@@ -572,7 +578,7 @@ module.provider('Restangular', function() {
 
       current[this.config.restangularFields.httpConfig] = undefined;
 
-      return RestangularResource(this.config, $http, url, {
+      return RestangularResource.create(this.config, url, {
         getList: this.config.withHttpValues(localHttpConfig,
           {method: 'GET',
           params: params,
@@ -747,7 +753,7 @@ module.provider('Restangular', function() {
 
 
 
-  this.$get = ['$http', '$q', function($http, $q) {
+  this.$get = ['$http', '$q', 'RestangularResource', function($http, $q, RestangularResource) {
 
     function createServiceForConfiguration(config) {
       var service = {};
@@ -1097,7 +1103,7 @@ module.provider('Restangular', function() {
           }
         };
 
-        urlHandler.resource(this, $http, request.httpConfig, request.headers, request.params, what,
+        urlHandler.resource(this, RestangularResource, $http, request.httpConfig, request.headers, request.params, what,
                 this[config.restangularFields.etag], operation)[method]().then(okCallback, function error(response) {
           if (response.status === 304 && __this[config.restangularFields.restangularCollection]) {
             resolvePromise(deferred, response, __this, filledArray);
@@ -1191,14 +1197,14 @@ module.provider('Restangular', function() {
 
         if (config.isSafe(operation)) {
           if (isOverrideOperation) {
-            urlHandler.resource(this, $http, request.httpConfig, callHeaders, request.params,
+            urlHandler.resource(this, RestangularResource, $http, request.httpConfig, callHeaders, request.params,
               what, etag, callOperation)[callOperation]({}).then(okCallback, errorCallback);
           } else {
-            urlHandler.resource(this, $http, request.httpConfig, callHeaders, request.params,
+            urlHandler.resource(this, RestangularResource, $http, request.httpConfig, callHeaders, request.params,
               what, etag, callOperation)[callOperation]().then(okCallback, errorCallback);
           }
         } else {
-          urlHandler.resource(this, $http, request.httpConfig, callHeaders, request.params,
+          urlHandler.resource(this, RestangularResource, $http, request.httpConfig, callHeaders, request.params,
             what, etag, callOperation)[callOperation](request.element).then(okCallback, errorCallback);
         }
 
