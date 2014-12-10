@@ -8,7 +8,7 @@
 var module = angular.module('restangular', []);
 
 module
-.service('RestangularResource', function RestangularResource($http) {
+.service('RestangularResource', ['$http', function ($http) {
   this.create = function (config, url, configurer) {
     var that = this, resource = {};
     _.each(_.keys(configurer), function(key) {
@@ -47,7 +47,7 @@ module
   this.executeRequest = function (params) {
     return $http(params);
   };
-})
+}])
 .provider('Restangular', function() {
   // Configuration
   var Configurer = {};
